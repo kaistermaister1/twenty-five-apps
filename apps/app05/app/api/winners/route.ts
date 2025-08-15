@@ -100,7 +100,19 @@ async function withBrowser<T>(fn: (page: Page, browser: Browser) => Promise<T>):
 
   // Prefer connecting to a remote browser (e.g. Browserless) when endpoint is provided
   if (wsEndpoint) {
-    const browser = await chromium.connectOverCDP(wsEndpoint);
+    // Retry connect a few times in case of transient 429s
+    let browser: Browser | null = null;
+    const attempts = 3;
+    for (let i = 0; i < attempts; i += 1) {
+      try {
+        browser = await chromium.connectOverCDP(wsEndpoint);
+        break;
+      } catch (e) {
+        if (i === attempts - 1) throw e;
+        await sleep(400 * (i + 1));
+      }
+    }
+    if (!browser) throw new Error("Failed to connect to remote browser");
     // Always create a fresh context so we can control UA and options
     const context = await browser.newContext({
       userAgent:
@@ -119,7 +131,9 @@ async function withBrowser<T>(fn: (page: Page, browser: Browser) => Promise<T>):
       return await fn(page, browser);
     } finally {
       try { await page.close(); } catch {}
-      // Intentionally do not close the remote browser; it may be shared
+      try { await context.close(); } catch {}
+      // Close the remote browser session so Browserless doesn't keep it allocated
+      try { await browser.close(); } catch {}
     }
   }
 
