@@ -108,36 +108,114 @@ function BottomTabs({ active, setActive }: { active: TabKey; setActive: (t: TabK
 	);
 }
 
-function HomeTab({ onAdd, currentCoords }: { onAdd: (entry: Omit<PoopEntry, "id" | "createdAt">) => void; currentCoords: { lat: number; lng: number } | null }) {
+function HomeTab({
+	onAdd,
+	onUpdate,
+	onDelete,
+	entries,
+	currentCoords,
+}: {
+	onAdd: (entry: Omit<PoopEntry, "id" | "createdAt">) => void;
+	onUpdate: (id: string, updates: Partial<PoopEntry>) => void;
+	onDelete: (id: string) => void;
+	entries: PoopEntry[];
+	currentCoords: { lat: number; lng: number } | null;
+}) {
 	const [note, setNote] = useState("");
 	const [photo, setPhoto] = useState<string | undefined>(undefined);
+	const [editingId, setEditingId] = useState<string | null>(null);
+
+	function resetForm() {
+		setNote("");
+		setPhoto(undefined);
+		setEditingId(null);
+	}
 
 	return (
-		<div className="p-4 space-y-4">
-			<h1 className="text-2xl font-semibold">New Entry</h1>
+		<div className="p-4 space-y-5">
+			<h1 className="section-title">{editingId ? "Edit Entry" : "New Entry"}</h1>
 			<textarea
 				value={note}
 				onChange={(e) => setNote(e.target.value)}
 				placeholder="How was it? Any notes..."
-				className="w-full min-h-28 rounded-xl border border-slate-200 p-3 focus:ring-2 focus:ring-brand-300"
+				className="w-full min-h-28 card focus:ring-2 focus:ring-brand-300"
 			/>
 			{photo && (
-				<div className="relative w-full h-48 overflow-hidden rounded-xl border">
+				<div className="relative w-full h-48 overflow-hidden rounded-2xl border">
 					<Image src={photo} alt="poop photo" fill className="object-cover" />
 				</div>
 			)}
 			<CameraInput onCapture={setPhoto} />
-			<button
-				onClick={() => {
-					onAdd({ note, photoDataUrl: photo, lat: currentCoords?.lat ?? null, lng: currentCoords?.lng ?? null });
-					setNote("");
-					setPhoto(undefined);
-				}}
-				className="w-full rounded-xl bg-black text-white py-3 font-medium shadow active:scale-[0.99]"
-			>
-				Save Entry
-			</button>
+			<div className="flex gap-3">
+				<button
+					onClick={() => {
+						if (editingId) {
+							onUpdate(editingId, { note, photoDataUrl: photo });
+							resetForm();
+						} else {
+							onAdd({ note, photoDataUrl: photo, lat: currentCoords?.lat ?? null, lng: currentCoords?.lng ?? null });
+							resetForm();
+						}
+					}}
+					className="flex-1 rounded-xl bg-black text-white py-3 font-medium shadow active:scale-[0.99]"
+				>
+					{editingId ? "Save Changes" : "Save Entry"}
+				</button>
+				{editingId && (
+					<button onClick={resetForm} className="flex-1 rounded-xl bg-slate-200 text-slate-800 py-3 font-medium active:scale-[0.99]">
+						Cancel
+					</button>
+				)}
+			</div>
 			<p className="text-center text-xs text-slate-500">Location: {currentCoords ? `${currentCoords.lat.toFixed(5)}, ${currentCoords.lng.toFixed(5)}` : "Unknown"}</p>
+
+			<div className="pt-2">
+				<h2 className="section-title">Previous Entries</h2>
+				{entries.length === 0 && <p className="text-sm text-slate-500">No entries yet.</p>}
+				<ul className="space-y-3">
+					{entries.map((e) => (
+						<li key={e.id} className="card flex items-center gap-3">
+							{e.photoDataUrl ? (
+								<div className="relative w-16 h-16 rounded-xl overflow-hidden border">
+									<Image src={e.photoDataUrl} alt="thumb" fill className="object-cover" />
+								</div>
+							) : (
+								<div className="w-16 h-16 rounded-xl bg-slate-100 grid place-items-center">💩</div>
+							)}
+							<div className="flex-1 min-w-0">
+								<div className="text-sm font-medium truncate">{new Date(e.createdAt).toLocaleString()}</div>
+								<div className="text-sm text-slate-600 line-clamp-2 whitespace-pre-wrap">{e.note || "No notes"}</div>
+								{e.lat != null && e.lng != null && (
+									<div className="text-xs text-slate-400">{e.lat.toFixed(4)}, {e.lng.toFixed(4)}</div>
+								)}
+							</div>
+							<div className="flex flex-col gap-2">
+								<button
+									onClick={() => {
+										setEditingId(e.id);
+										setNote(e.note);
+										setPhoto(e.photoDataUrl);
+									}}
+									className="px-3 py-2 rounded-xl bg-brand-500 text-white text-sm shadow"
+								>
+									Edit
+								</button>
+								<button
+									onClick={() => {
+										if (window.confirm("Delete this entry?")) {
+											onDelete(e.id);
+											if (editingId === e.id) resetForm();
+										}
+									}}
+									className="px-3 py-2 rounded-xl bg-red-100 text-red-700 text-sm"
+								>
+									Delete
+								</button>
+							</div>
+						</li>
+					))}
+				</ul>
+			</div>
 		</div>
 	);
 }
@@ -199,10 +277,18 @@ export default function App() {
 		setEntries([newEntry, ...entries]);
 	}
 
+	function updateEntry(id: string, updates: Partial<PoopEntry>) {
+		setEntries(entries.map((e) => (e.id === id ? { ...e, ...updates } : e)));
+	}
+
+	function deleteEntry(id: string) {
+		setEntries(entries.filter((e) => e.id !== id));
+	}
+
 	return (
 		<div className="pb-20">
 			{active === "home" ? (
-				<HomeTab onAdd={addEntry} currentCoords={coords} />
+				<HomeTab onAdd={addEntry} onUpdate={updateEntry} onDelete={deleteEntry} entries={entries} currentCoords={coords} />
 			) : (
 				<MapTab entries={entries} />
 			)}

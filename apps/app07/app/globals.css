@@ -9,6 +9,15 @@
 html, body {
 	height: 100%;
 }
+/* Fun card look */
+.card {
+	@apply rounded-2xl bg-white border border-slate-200 shadow-[0_1px_0_#e8e5e0] p-4;
+}
+
+.section-title {
+	@apply font-hand text-2xl mb-2;
+}
+
 
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
 	outline: none;

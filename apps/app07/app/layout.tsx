@@ -1,5 +1,10 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { Poppins } from "next/font/google";
+import { Caveat } from "next/font/google";
+
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans" });
+const caveat = Caveat({ subsets: ["latin"], weight: ["400", "500", "700"], variable: "--font-hand" });
 
 export const metadata: Metadata = {
 	title: "Poop Map",
@@ -29,7 +34,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en" className="h-full bg-gradient-to-br from-brand-50 to-white">
+		<html lang="en" className={`h-full bg-[#F8F5EE] ${poppins.variable} ${caveat.variable}`}>
 			<body className="min-h-full antialiased text-slate-900">
 				<div className="safe-top" />
 				<div className="mx-auto max-w-md min-h-screen pb-24">

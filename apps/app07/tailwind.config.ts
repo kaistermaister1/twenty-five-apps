@@ -21,6 +21,9 @@ const config: Config = {
 					900: "#870d0d",
 				},
 			},
+			fontFamily: {
+				hand: ["var(--font-hand)", "ui-rounded", "system-ui"],
+			},
 		},
 	},
 	plugins: [],
