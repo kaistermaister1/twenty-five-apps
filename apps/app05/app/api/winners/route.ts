@@ -101,16 +101,20 @@ async function withBrowser<T>(fn: (page: Page, browser: Browser) => Promise<T>):
   // Prefer connecting to a remote browser (e.g. Browserless) when endpoint is provided
   if (wsEndpoint) {
     const browser = await chromium.connectOverCDP(wsEndpoint);
-    const existing = browser.contexts();
-    const context = existing.length
-      ? existing[0]
-      : await browser.newContext({
-          userAgent:
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-          viewport: { width: 1366, height: 900 },
-          locale: "en-US",
-        });
+    // Always create a fresh context so we can control UA and options
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 900 },
+      locale: "en-US",
+      bypassCSP: true,
+    });
     const page = await context.newPage();
+    await page.addInitScript(() => {
+      // Light anti-bot hints
+      // @ts-ignore
+      Object.defineProperty(navigator, "webdriver", { get: () => false });
+    });
     try {
       return await fn(page, browser);
     } finally {
@@ -422,9 +426,8 @@ export async function GET(req: NextRequest) {
           let raceLinks: string[] = [];
           await sharedPage.goto(url, { waitUntil: "domcontentloaded" });
           await sharedPage.waitForTimeout(300);
-          const hrefs = await sharedPage.$$eval("a", (as) =>
-            as.map((a) => (a as HTMLAnchorElement).getAttribute("href") || "").filter(Boolean)
-          );
+          const hrefs = await sharedPage.$$eval("a", (as) => as.map((a) => (a as HTMLAnchorElement).getAttribute("href") || ""));
+          // Browserless sometimes blocks or strips attributes for bots; also fetch via HTTP and merge
           raceLinks = hrefs.filter((h) => isRaceDetailHref(h)).map((h) => absolutize(h));
 
           // Fallback to HTTP/proxy if empty
@@ -447,7 +450,8 @@ export async function GET(req: NextRequest) {
               }
               parsed = Array.from(found);
             }
-            raceLinks = parsed;
+            // Merge any Playwright-found links and HTTP-found links
+            raceLinks = Array.from(new Set([...raceLinks, ...parsed]));
           }
 
           raceLinks = raceLinks.slice(0, 50);
