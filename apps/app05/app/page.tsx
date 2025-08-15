@@ -41,8 +41,20 @@ export default function HomePage() {
     return local.toLocaleDateString(undefined, {
       month: "long",
       day: "numeric",
+      year: "numeric",
     });
   }, [birthday]);
+
+  function formatIsoDate(iso: string): string {
+    if (!iso) return "";
+    // Force Z to avoid local TZ shifting
+    const d = new Date(iso + "T00:00:00Z");
+    return d.toLocaleDateString(undefined, {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -127,6 +139,12 @@ export default function HomePage() {
         </div>
       )}
 
+      {!loading && !!birthday && raw && results.length === 0 && (
+        <div className="mt-6 card p-4 text-gray-700 bg-gray-50 border-gray-200">
+          No winners were found for {prettyDate}. Try another year or check back later.
+        </div>
+      )}
+
       {!!results.length && (
         <section className="mt-8">
           <h2 className="text-xl font-bold text-gray-800 mb-3">
@@ -145,7 +163,7 @@ export default function HomePage() {
                     >
                       {r.raceName} ({r.editionYear})
                     </a>
-                    <div className="text-sm text-gray-600">{r.date}</div>
+                    <div className="text-sm text-gray-600">{formatIsoDate(r.date)}</div>
                   </div>
                   <div className="text-gray-900">
                     Winner: {r.winnerUrl ? (
