@@ -365,6 +365,9 @@ function tryRaceSingleDayWinner(html: string, birthdayIso: string, raceUrl?: str
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const birthday = searchParams.get("birthday");
+  const debug = searchParams.get("debug") === "1";
+  const isVercel = !!process.env.VERCEL;
+  const hasWsEndpoint = !!process.env.PLAYWRIGHT_WS_ENDPOINT;
 
   if (!birthday) {
     return NextResponse.json({ error: "Missing birthday" }, { status: 400 });
@@ -382,6 +385,17 @@ export async function GET(req: NextRequest) {
   const visitedRaceUrls: string[] = [];
   const calendarLog: Array<{ t: number; status: number; ok: boolean; viaProxy: boolean; linkCount: number }> = [];
   const raceFetchLog: Array<{ url: string; status: number; ok: boolean; viaProxy: boolean }> = [];
+
+  // If on Vercel and no remote browser endpoint is configured, fail fast with guidance
+  if (isVercel && !hasWsEndpoint) {
+    return NextResponse.json(
+      {
+        error: "Playwright remote browser not configured",
+        hint: "Set PLAYWRIGHT_WS_ENDPOINT in Vercel env to a remote Chrome/CDP endpoint (e.g. Browserless)",
+      },
+      { status: 503 }
+    );
+  }
 
   // Use the helper to run the whole scrape inside a single browser session
   try {
@@ -456,13 +470,13 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (err: any) {
-    if (process.env.VERCEL && !process.env.PLAYWRIGHT_WS_ENDPOINT) {
-      return NextResponse.json(
-        { error: "Playwright cannot launch in this environment. Set PLAYWRIGHT_WS_ENDPOINT to use a remote browser." },
-        { status: 503 }
-      );
+    const message = err?.message || String(err);
+    const body: Record<string, unknown> = { error: "Internal error" };
+    if (debug) {
+      body.details = message;
+      body.flags = { isVercel, hasWsEndpoint };
     }
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    return NextResponse.json(body, { status: 500 });
   }
 
   // Deduplicate by raceUrl + date + winner
@@ -483,6 +497,7 @@ export async function GET(req: NextRequest) {
       calendarUrlsTried: ts.map((cat) => `${FIRSTCYCLING_BASE}/race.php?y=${targetYear}&t=${cat}`),
       calendarLog,
       raceFetchLog,
+      flags: { isVercel, hasWsEndpoint },
     },
   });
 }
