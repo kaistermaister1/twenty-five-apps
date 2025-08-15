@@ -1,17 +1,27 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Cycling Birthday Winners",
   description: "Find pro cycling winners on your birthday",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Cycling Birthday Winners",
   },
-  themeColor: "#006bff",
+  icons: {
+    apple: "/icons/icon192.png",
+  },
   manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#006bff",
 };
 
 export default function RootLayout({

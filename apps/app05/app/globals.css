@@ -10,6 +10,33 @@ html, body {
   height: 100%;
 }
 
+/* iOS PWA edge-to-edge support */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  top: 0;
+  background: transparent;
+  pointer-events: none;
+}
+body::after {
+  top: auto;
+  bottom: 0;
+  height: env(safe-area-inset-bottom);
+}
+
+main {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-left: calc(1rem + env(safe-area-inset-left));
+  padding-right: calc(1rem + env(safe-area-inset-right));
+  padding-top: calc(1rem + env(safe-area-inset-top));
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
 .card {
   @apply rounded-2xl bg-white/70 backdrop-blur shadow-lg border border-white/60;
 }
