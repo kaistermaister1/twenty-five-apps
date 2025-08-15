@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Torch Camera (iOS)</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main>
+    <h1>Torch Camera (iOS)</h1>
+    <p>
+      This app requires a native iOS build to keep the torch (flash) on while taking
+      photos and save them directly to the Camera Roll. Web apps on iOS cannot
+      control the torch.
+    </p>
+    <p>
+      See <a href="./ios/README.md">ios/README.md</a> for Xcode setup and source code.
+    </p>
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js');
+    }
+  </script>
+</body>
+</html>

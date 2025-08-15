@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Time Tracker" />
+  <title>Time Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <link rel="apple-touch-icon" href="icons/icon192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main>
+    <header class="app-header">
+      <h1>Time Tracker</h1>
+      <button id="openSettings" class="icon-btn" aria-label="Settings" title="Settings">⚙️</button>
+    </header>
+
+    <section class="card">
+      <div class="controls">
+        <label for="categorySelect">Category</label>
+        <div class="row">
+          <select id="categorySelect" aria-label="Category"></select>
+          <button id="startStopBtn" class="primary">Start</button>
+        </div>
+        <div class="now-playing" id="nowPlaying" hidden>
+          <span>Tracking:</span>
+          <strong id="activeCategory">—</strong>
+          <span class="dot">•</span>
+          <span id="activeElapsed">00:00:00</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Overview</h2>
+      <div class="tabs">
+        <button class="tab active" data-range="today" id="tabToday">Today</button>
+        <button class="tab" data-range="all" id="tabAll">All time</button>
+      </div>
+      <div id="overview" class="overview"></div>
+    </section>
+
+    <section class="card" id="recentSessionsSection">
+      <h2>Recent Sessions</h2>
+      <div id="recentSessions" class="sessions"></div>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="settings">
+      <header>
+        <h3>Categories</h3>
+        <button id="closeSettings" class="icon-btn" aria-label="Close" title="Close">✖️</button>
+      </header>
+      <div class="add-row">
+        <input id="newCategoryInput" placeholder="Add new category" />
+        <button id="addCategoryBtn" class="secondary" type="button">Add</button>
+      </div>
+      <ul id="categoryList" class="category-list"></ul>
+      <menu>
+        <button value="cancel" class="secondary">Done</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js');
+    }
+  </script>
+</body>
+</html>

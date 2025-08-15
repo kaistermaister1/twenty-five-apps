@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Photo Swipe" />
+  <title>Photo Swipe</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b0c0f" />
+  <link rel="apple-touch-icon" href="icons/icon192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <!-- Upload Screen -->
+    <section id="screen-upload" class="screen active">
+      <header class="app-header">
+        <h1 class="title">Photo Swipe</h1>
+        <p class="subtitle">Pick photos, then swipe right to like or left to pass.</p>
+      </header>
+
+      <div class="upload-panel">
+        <label class="file-picker">
+          <input id="fileInput" type="file" accept="image/*" multiple />
+          <span class="file-picker-cta">Choose Photos</span>
+        </label>
+        <p id="fileCount" class="file-count">No photos selected</p>
+      </div>
+
+      <div class="actions">
+        <button id="startBtn" class="btn primary" disabled>Start</button>
+      </div>
+    </section>
+
+    <!-- Swipe Screen -->
+    <section id="screen-swipe" class="screen hidden">
+      <div class="topbar">
+        <button id="backToUpload" class="icon-btn" aria-label="Back">←</button>
+        <div class="progress"><span id="progressText">0/0</span></div>
+        <button id="toResults" class="icon-btn" aria-label="Results">☰</button>
+      </div>
+
+      <div id="cardStack" class="card-stack"></div>
+
+      <div class="bottom-actions">
+        <button id="btnNope" class="circle-btn" aria-label="Nope">✕</button>
+        <button id="btnLike" class="circle-btn primary" aria-label="Like">♥</button>
+      </div>
+    </section>
+
+    <!-- Results Screen -->
+    <section id="screen-results" class="screen hidden">
+      <header class="app-header">
+        <h2 class="title">Your Picks</h2>
+        <p class="subtitle"><span id="likedCount">0</span> liked, <span id="passedCount">0</span> passed</p>
+      </header>
+
+      <div class="results">
+        <div class="result-group">
+          <h3>Liked</h3>
+          <div id="likedGrid" class="thumb-grid"></div>
+        </div>
+        <div class="result-group">
+          <h3>Passed</h3>
+          <div id="passedGrid" class="thumb-grid"></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="restartBtn" class="btn">Start Over</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js');
+    }
+  </script>
+</body>
+</html>
