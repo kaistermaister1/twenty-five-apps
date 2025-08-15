@@ -15,7 +15,7 @@ html, body {
 }
 
 .section-title {
-	@apply font-hand text-2xl mb-2;
+	@apply text-2xl font-semibold mb-2;
 }
 
 
