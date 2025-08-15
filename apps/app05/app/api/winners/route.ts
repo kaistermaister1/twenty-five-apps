@@ -38,6 +38,22 @@ function looksBlocked(text: string): boolean {
     lowered.includes("cloudflare")
   );
 }
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<void>
+) {
+  let cursor = 0;
+  const runners = Array.from({ length: Math.max(1, limit) }, async () => {
+    while (true) {
+      const index = cursor++;
+      if (index >= items.length) break;
+      const item = items[index];
+      await worker(item, index);
+    }
+  });
+  await Promise.all(runners);
+}
 
 async function fetchDirectHtml(url: string): Promise<{ ok: boolean; status: number; text: string }> {
   const res = await fetch(url, {
@@ -438,12 +454,15 @@ export async function GET(req: NextRequest) {
           raceLinksByCategory[t] = raceLinks;
           calendarLog.push({ t, status, ok, viaProxy, linkCount: raceLinks.length });
 
-          for (const raceUrl of raceLinks) {
+          const concurrency = Math.max(1, parseInt(process.env.SCRAPE_CONCURRENCY || "4", 10));
+          await runWithConcurrency(raceLinks, concurrency, async (raceUrl) => {
             try {
               visitedRaceUrls.push(raceUrl);
-              await sharedPage.goto(raceUrl, { waitUntil: "domcontentloaded" });
-              await sharedPage.waitForTimeout(300);
-              const html = await sharedPage.content();
+              const page = await sharedPage.context().newPage();
+              await page.goto(raceUrl, { waitUntil: "domcontentloaded" });
+              await page.waitForTimeout(300);
+              const html = await page.content();
+              await page.close();
               raceFetchLog.push({ url: raceUrl, status: 200, ok: true, viaProxy: false });
               let parsed = parseRaceWinnerForDate(html, birthday, raceUrl);
               if (!parsed) parsed = tryRaceSingleDayWinner(html, birthday, raceUrl);
@@ -451,7 +470,7 @@ export async function GET(req: NextRequest) {
               if (parsed) {
                 results.push({ ...parsed, categoryT: t });
               }
-              await sleep(80);
+              await sleep(60);
             } catch (e) {
               const resp = await fetchHtmlSmart(raceUrl);
               raceFetchLog.push({ url: raceUrl, status: resp.status, ok: resp.ok, viaProxy: resp.viaProxy });
@@ -462,7 +481,7 @@ export async function GET(req: NextRequest) {
                 if (parsed) results.push({ ...parsed, categoryT: t });
               }
             }
-          }
+          });
         } catch (e) {
           // ignore category errors
         }
