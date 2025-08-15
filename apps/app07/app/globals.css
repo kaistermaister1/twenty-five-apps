@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+	-webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+	height: 100%;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
+	outline: none;
+}
+
+/* iOS fullscreen safe-area helpers */
+.safe-top {
+	height: constant(safe-area-inset-top);
+	height: env(safe-area-inset-top);
+}
+.safe-bottom {
+	height: constant(safe-area-inset-bottom);
+	height: env(safe-area-inset-bottom);
+}
+
+
