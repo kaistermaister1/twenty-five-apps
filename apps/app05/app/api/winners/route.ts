@@ -472,7 +472,8 @@ export async function GET(req: NextRequest) {
           raceLinksByCategory[t] = raceLinks;
           calendarLog.push({ t, status, ok, viaProxy, linkCount: raceLinks.length });
 
-          const concurrency = Math.max(1, parseInt(process.env.SCRAPE_CONCURRENCY || "4", 10));
+          // Run with minimal default concurrency to avoid 429s on Browserless
+          const concurrency = Math.max(1, parseInt(process.env.SCRAPE_CONCURRENCY || "1", 10));
           await runWithConcurrency(raceLinks, concurrency, async (raceUrl) => {
             try {
               visitedRaceUrls.push(raceUrl);
