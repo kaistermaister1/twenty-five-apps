@@ -1,10 +1,15 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
   title: "Voice Notes",
   description: "Beautiful, simple voice-to-text notes",
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Voice Notes",
+  },
   icons: {
     icon: [
       { url: "/icons/icon192.png", sizes: "192x192", type: "image/png" },
@@ -14,6 +19,14 @@ export const metadata: Metadata = {
       { url: "/icons/icon192.png", sizes: "192x192", type: "image/png" },
     ],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#1aa6ff",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
