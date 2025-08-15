@@ -4,6 +4,8 @@ import { chromium, Browser, Page } from "playwright";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Give the function enough time on Vercel Pro to finish scraping
+export const maxDuration = 60;
 
 type WinnerResult = {
   raceName: string;
@@ -77,20 +79,51 @@ async function fetchHtmlSmart(url: string): Promise<{ ok: boolean; status: numbe
 }
 
 async function withBrowser<T>(fn: (page: Page, browser: Browser) => Promise<T>): Promise<T> {
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    viewport: { width: 1366, height: 900 },
-    locale: "en-US",
-  });
-  const page = await context.newPage();
-  try {
-    return await fn(page, browser);
-  } finally {
-    await context.close();
-    await browser.close();
+  const isVercel = !!process.env.VERCEL;
+  const wsEndpoint = process.env.PLAYWRIGHT_WS_ENDPOINT;
+
+  // Prefer connecting to a remote browser (e.g. Browserless) when endpoint is provided
+  if (wsEndpoint) {
+    const browser = await chromium.connectOverCDP(wsEndpoint);
+    const existing = browser.contexts();
+    const context = existing.length
+      ? existing[0]
+      : await browser.newContext({
+          userAgent:
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          viewport: { width: 1366, height: 900 },
+          locale: "en-US",
+        });
+    const page = await context.newPage();
+    try {
+      return await fn(page, browser);
+    } finally {
+      try { await page.close(); } catch {}
+      // Intentionally do not close the remote browser; it may be shared
+    }
   }
+
+  // Local Chromium only when not on Vercel serverless
+  if (!isVercel) {
+    const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      viewport: { width: 1366, height: 900 },
+      locale: "en-US",
+    });
+    const page = await context.newPage();
+    try {
+      return await fn(page, browser);
+    } finally {
+      await context.close();
+      await browser.close();
+    }
+  }
+
+  throw new Error(
+    "Playwright is not available in this deployment. Provide PLAYWRIGHT_WS_ENDPOINT to use a remote browser."
+  );
 }
 
 function isRaceDetailHref(href: string): boolean {
@@ -350,87 +383,86 @@ export async function GET(req: NextRequest) {
   const calendarLog: Array<{ t: number; status: number; ok: boolean; viaProxy: boolean; linkCount: number }> = [];
   const raceFetchLog: Array<{ url: string; status: number; ok: boolean; viaProxy: boolean }> = [];
 
-  // Reuse one browser/page for the scrape for speed
-  const sharedBrowser = await chromium.launch({ headless: true });
-  const sharedContext = await sharedBrowser.newContext({
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    viewport: { width: 1366, height: 900 },
-    locale: "en-US",
-  });
-  const sharedPage = await sharedContext.newPage();
+  // Use the helper to run the whole scrape inside a single browser session
   try {
-    for (const t of ts) {
-      const url = `${FIRSTCYCLING_BASE}/race.php?y=${targetYear}&t=${t}`;
-      try {
-        let raceLinks: string[] = [];
-        await sharedPage.goto(url, { waitUntil: "domcontentloaded" });
-        await sharedPage.waitForTimeout(300);
-        const hrefs = await sharedPage.$$eval("a", (as) =>
-          as.map((a) => (a as HTMLAnchorElement).getAttribute("href") || "").filter(Boolean)
-        );
-        raceLinks = hrefs.filter((h) => isRaceDetailHref(h)).map((h) => absolutize(h));
+    await withBrowser(async (sharedPage) => {
+      for (const t of ts) {
+        const url = `${FIRSTCYCLING_BASE}/race.php?y=${targetYear}&t=${t}`;
+        try {
+          let raceLinks: string[] = [];
+          await sharedPage.goto(url, { waitUntil: "domcontentloaded" });
+          await sharedPage.waitForTimeout(300);
+          const hrefs = await sharedPage.$$eval("a", (as) =>
+            as.map((a) => (a as HTMLAnchorElement).getAttribute("href") || "").filter(Boolean)
+          );
+          raceLinks = hrefs.filter((h) => isRaceDetailHref(h)).map((h) => absolutize(h));
 
-        // Fallback to HTTP/proxy if empty
-        let status = 200;
-        let ok = true;
-        let viaProxy = false;
-        if (!raceLinks.length) {
-          const cal = await fetchHtmlSmart(url);
-          status = cal.status;
-          ok = cal.ok;
-          viaProxy = cal.viaProxy;
-          let parsed = cal.ok ? parseRaceCalendar(cal.text) : [];
-          if (!parsed.length) {
-            const rx = /href=\"([^\"]*race\.php[^\"]*)\"/gi;
-            const found = new Set<string>();
-            let m: RegExpExecArray | null;
-            while ((m = rx.exec(cal.text))) {
-              const href = m[1];
-              if (isRaceDetailHref(href)) found.add(absolutize(href));
+          // Fallback to HTTP/proxy if empty
+          let status = 200;
+          let ok = true;
+          let viaProxy = false;
+          if (!raceLinks.length) {
+            const cal = await fetchHtmlSmart(url);
+            status = cal.status;
+            ok = cal.ok;
+            viaProxy = cal.viaProxy;
+            let parsed = cal.ok ? parseRaceCalendar(cal.text) : [];
+            if (!parsed.length) {
+              const rx = /href=\"([^\"]*race\.php[^\"]*)\"/gi;
+              const found = new Set<string>();
+              let m: RegExpExecArray | null;
+              while ((m = rx.exec(cal.text))) {
+                const href = m[1];
+                if (isRaceDetailHref(href)) found.add(absolutize(href));
+              }
+              parsed = Array.from(found);
             }
-            parsed = Array.from(found);
+            raceLinks = parsed;
           }
-          raceLinks = parsed;
-        }
 
-        raceLinks = raceLinks.slice(0, 50);
-        raceLinksByCategory[t] = raceLinks;
-        calendarLog.push({ t, status, ok, viaProxy, linkCount: raceLinks.length });
+          raceLinks = raceLinks.slice(0, 50);
+          raceLinksByCategory[t] = raceLinks;
+          calendarLog.push({ t, status, ok, viaProxy, linkCount: raceLinks.length });
 
-        for (const raceUrl of raceLinks) {
-          try {
-            visitedRaceUrls.push(raceUrl);
-            await sharedPage.goto(raceUrl, { waitUntil: "domcontentloaded" });
-            await sharedPage.waitForTimeout(300);
-            const html = await sharedPage.content();
-            raceFetchLog.push({ url: raceUrl, status: 200, ok: true, viaProxy: false });
-            let parsed = parseRaceWinnerForDate(html, birthday, raceUrl);
-            if (!parsed) parsed = tryRaceSingleDayWinner(html, birthday, raceUrl);
-            racePagesVisited += 1;
-            if (parsed) {
-              results.push({ ...parsed, categoryT: t });
-            }
-            await sleep(80);
-          } catch (e) {
-            const resp = await fetchHtmlSmart(raceUrl);
-            raceFetchLog.push({ url: raceUrl, status: resp.status, ok: resp.ok, viaProxy: resp.viaProxy });
-            if (resp.ok && !looksBlocked(resp.text)) {
-              let parsed = parseRaceWinnerForDate(resp.text, birthday, raceUrl);
-              if (!parsed) parsed = tryRaceSingleDayWinner(resp.text, birthday, raceUrl);
+          for (const raceUrl of raceLinks) {
+            try {
+              visitedRaceUrls.push(raceUrl);
+              await sharedPage.goto(raceUrl, { waitUntil: "domcontentloaded" });
+              await sharedPage.waitForTimeout(300);
+              const html = await sharedPage.content();
+              raceFetchLog.push({ url: raceUrl, status: 200, ok: true, viaProxy: false });
+              let parsed = parseRaceWinnerForDate(html, birthday, raceUrl);
+              if (!parsed) parsed = tryRaceSingleDayWinner(html, birthday, raceUrl);
               racePagesVisited += 1;
-              if (parsed) results.push({ ...parsed, categoryT: t });
+              if (parsed) {
+                results.push({ ...parsed, categoryT: t });
+              }
+              await sleep(80);
+            } catch (e) {
+              const resp = await fetchHtmlSmart(raceUrl);
+              raceFetchLog.push({ url: raceUrl, status: resp.status, ok: resp.ok, viaProxy: resp.viaProxy });
+              if (resp.ok && !looksBlocked(resp.text)) {
+                let parsed = parseRaceWinnerForDate(resp.text, birthday, raceUrl);
+                if (!parsed) parsed = tryRaceSingleDayWinner(resp.text, birthday, raceUrl);
+                racePagesVisited += 1;
+                if (parsed) results.push({ ...parsed, categoryT: t });
+              }
             }
           }
+        } catch (e) {
+          // ignore category errors
         }
-      } catch (e) {
-        // ignore category errors
+        await sleep(120);
       }
-      await sleep(120);
+    });
+  } catch (err: any) {
+    if (process.env.VERCEL && !process.env.PLAYWRIGHT_WS_ENDPOINT) {
+      return NextResponse.json(
+        { error: "Playwright cannot launch in this environment. Set PLAYWRIGHT_WS_ENDPOINT to use a remote browser." },
+        { status: 503 }
+      );
     }
-  } finally {
-    await sharedContext.close();
-    await sharedBrowser.close();
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 
   // Deduplicate by raceUrl + date + winner
