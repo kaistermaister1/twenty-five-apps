@@ -31,9 +31,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="h-full bg-gradient-to-br from-brand-50 to-white">
       <body className="min-h-full antialiased text-slate-900">
+        <div className="safe-top" />
         <div className="mx-auto max-w-2xl p-4 sm:p-6 lg:p-8">
           {children}
         </div>
+        <div className="safe-bottom" />
       </body>
     </html>
   );
