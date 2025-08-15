@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -77,6 +79,9 @@ function CameraInput({ onCapture }: { onCapture: (dataUrl: string | undefined) =
 }
 
 function BottomTabs({ active, setActive }: { active: TabKey; setActive: (t: TabKey) => void }) {
+	const [mounted, setMounted] = useState(false);
+	useEffect(() => setMounted(true), []);
+	if (!mounted) return null;
 	return createPortal(
 		<div className="fixed bottom-0 left-0 right-0 z-50">
 			<div className="safe-bottom" />
