@@ -120,3 +120,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* iOS safe area helpers */
+.safe-top { height: env(safe-area-inset-top); }
+.safe-bottom { height: env(safe-area-inset-bottom); }

@@ -21,7 +21,8 @@ export function getSheetsClient(): SheetsClient {
 	if (cachedClient) return cachedClient;
 
 	const clientEmail = getEnv('GOOGLE_SHEETS_CLIENT_EMAIL');
-	const privateKey = getEnv('GOOGLE_SHEETS_PRIVATE_KEY').replace(/\\n/g, '\n');
+	const rawKey = getEnv('GOOGLE_SHEETS_PRIVATE_KEY');
+	const privateKey = rawKey.includes('BEGIN PRIVATE KEY') ? rawKey.replace(/\\n/g, '\n') : rawKey;
 	const sheetId = getEnv('GOOGLE_SHEET_ID');
 	const sheetName = getEnv('GOOGLE_SHEET_NAME', true) || 'Sheet1';
 

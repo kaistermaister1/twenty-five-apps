@@ -7,7 +7,9 @@ export async function GET() {
 		const state = await readChatState();
 		return NextResponse.json(state, { status: 200 });
 	} catch (error) {
-		return NextResponse.json({ error: 'Failed to read chat state' }, { status: 500 });
+		console.error('GET /api/chat error', error);
+		const message = process.env.VERCEL_ENV !== 'production' && error instanceof Error ? error.message : 'Failed to read chat state';
+		return NextResponse.json({ error: message }, { status: 500 });
 	}
 }
 
@@ -26,7 +28,9 @@ export async function POST(req: Request) {
 
 		return NextResponse.json({ ok: true }, { status: 200 });
 	} catch (error) {
-		return NextResponse.json({ error: 'Failed to post message' }, { status: 500 });
+		console.error('POST /api/chat error', error);
+		const message = process.env.VERCEL_ENV !== 'production' && error instanceof Error ? error.message : 'Failed to post message';
+		return NextResponse.json({ error: message }, { status: 500 });
 	}
 }
 
