@@ -1,0 +1,20 @@
+* { box-sizing: border-box; }
+html, body, :root { height: 100%; }
+body { margin: 0; }
+button { border: none; background: none; }
+.hud { position: fixed; inset: 0; pointer-events: auto; }
+.controls { position: absolute; bottom: max(env(safe-area-inset-bottom, 0), 1vh); left: 0; right: 0; height: 32vh; pointer-events: auto; }
+.btn { pointer-events: auto; position: absolute; opacity: 0.9; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.btn:active { opacity: 0.95; }
+.btn-left, .btn-right { width: 24vh; height: 24vh; border-radius: 50%; background: rgba(255,255,255,0.15); backdrop-filter: blur(4px); color: white; font-size: 4vh; display: flex; align-items: center; justify-content: center; }
+.btn-left { left: 2vh; bottom: 2vh; }
+.btn-right { left: 28vh; bottom: 2vh; }
+.btn-jump { right: 2vh; bottom: 2vh; width: 28vh; height: 28vh; border-radius: 50%; background: rgba(56,189,248,0.18); color: white; font-size: 4vh; display: flex; align-items: center; justify-content: center; }
+.toast { position: absolute; top: env(safe-area-inset-top, 0); left: 0; right: 0; text-align: center; padding: 1rem; font-size: 2.4vh; opacity: 0.9; }
+
+/* Lock to landscape visuals (content is responsive but hints iOS to rotate) */
+@media screen and (orientation: portrait) {
+  .rotate-hint { position: fixed; inset: 0; display: grid; place-items: center; background: #0b0f14; color: white; z-index: 50; font-size: 20px; }
+}
+
+
