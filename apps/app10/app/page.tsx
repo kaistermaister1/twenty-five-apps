@@ -149,7 +149,7 @@ export default function Page() {
     }
 
     function draw() {
-      const c = ctx;
+      const c = ctx as CanvasRenderingContext2D;
       c.save();
       c.clearRect(0, 0, canvas.width, canvas.height);
 
