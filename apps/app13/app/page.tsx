@@ -11,7 +11,7 @@ type Recipe = {
 };
 
 export default function Page() {
-  const [activeTab, setActiveTab] = useState<"Pantry" | "Recipes">("Pantry");
+  const [activeTab, setActiveTab] = useState<"Pantry" | "Recipes" | "Saved">("Pantry");
   const [pantry, setPantry] = useState<string[]>([]);
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => { setHasMounted(true); }, []);
@@ -26,10 +26,25 @@ export default function Page() {
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<Recipe[]>([]);
+
+  // Options for generation
+  const [count, setCount] = useState<number>(4);
+  const [allowMissing, setAllowMissing] = useState<boolean>(true);
+  const [notes, setNotes] = useState<string>("");
 
   useEffect(() => {
     try { localStorage.setItem("app13_pantry_v1", JSON.stringify(pantry)); } catch {}
   }, [pantry]);
+  useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem("app13_saved_v1") : null;
+      if (raw) setSaved(JSON.parse(raw));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem("app13_saved_v1", JSON.stringify(saved)); } catch {}
+  }, [saved]);
 
   function addItem() {
     const v = draftItem.trim();
@@ -48,7 +63,7 @@ export default function Page() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pantry }),
+        body: JSON.stringify({ pantry, count, allowMissing, notes }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to generate");
@@ -65,17 +80,27 @@ export default function Page() {
     }
   }
 
-  const bottomBarHeight = 68;
+  const bottomBarHeight = 56; // reduce height; outer container no extra bottom padding
+
+  // Measure top app bar height to avoid overlap
+  const appBarRef = useRef<HTMLDivElement | null>(null);
+  const [appBarHeight, setAppBarHeight] = useState<number>(56);
+  useEffect(() => {
+    const measure = () => { if (appBarRef.current) setAppBarHeight(appBarRef.current.offsetHeight); };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
 
   return (
     <div className="app-root" style={{ display: "flex", flexDirection: "column", background: "#f8fafc", height: "100%", overflow: "hidden" }}>
       {/* Top bar */}
-      <div style={{ position: 'fixed', left: 0, right: 0, top: 0, zIndex: 20, background: "#0f766e", color: "#fff", padding: "10px 12px", paddingTop: "calc(var(--safe-area-inset-top) + 14px)", display: "flex", alignItems: "center", gap: 12 }}>
+      <div ref={appBarRef} style={{ position: 'fixed', left: 0, right: 0, top: 0, zIndex: 20, background: "#0f766e", color: "#fff", padding: "10px 12px", paddingTop: "calc(var(--safe-area-inset-top) + 14px)", display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ fontSize: 20, fontWeight: 700 }}>Recipe Helper</div>
       </div>
 
       {/* Content area */}
-      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 56 + 8, paddingBottom: `calc(${bottomBarHeight + 16}px + var(--safe-area-inset-bottom))` }}>
+      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: appBarHeight + 10 }}>
         {activeTab === "Pantry" && (
           <div style={{ padding: 16, display: 'grid', gap: 12 }}>
             <div style={{ fontSize: 14, color: '#0f172a' }}>Your pantry items</div>
@@ -106,13 +131,29 @@ export default function Page() {
 
         {activeTab === "Recipes" && (
           <div style={{ padding: 16, display: 'grid', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={generateRecipes} disabled={loading} style={{ padding: '12px 16px', borderRadius: 10, background: '#0f766e', color: '#fff', fontWeight: 700 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', position: 'sticky', top: 0, background: '#ffffff', paddingTop: 8, paddingBottom: 8, zIndex: 1 }}>
+              <button onClick={generateRecipes} disabled={loading} style={{ padding: '12px 16px', borderRadius: 12, background: '#0f766e', color: '#fff', fontWeight: 700, boxShadow: '0 4px 10px rgba(15,118,110,0.3)' }}>
                 {loading ? 'Generating…' : 'Generate Recipes'}
               </button>
               <div style={{ alignSelf: 'center', color: '#64748b', fontSize: 12 }}>
                 Uses pantry: {hasMounted ? pantry.length : 0} items
               </div>
+            </div>
+            {/* Options */}
+            <div style={{ display: 'grid', gap: 12, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
+              <label style={{ display: 'grid', gap: 6 }}>
+                <span style={{ fontSize: 12, color: '#475569' }}>How many recipes?</span>
+                <input type="number" min={1} max={10} value={count} onChange={e => setCount(Math.max(1, Math.min(10, parseInt(e.target.value || '1', 10))))} style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', background: '#fff', width: 120 }} />
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input type="checkbox" checked={allowMissing} onChange={e => setAllowMissing(e.target.checked)} />
+                <span style={{ fontSize: 14, color: '#0f172a' }}>Allow recipes with up to 2 missing minor ingredients</span>
+              </label>
+              <label style={{ display: 'grid', gap: 6 }}>
+                <span style={{ fontSize: 12, color: '#475569' }}>Extra details (diet, cuisine, cooking time, etc.)</span>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="e.g. vegetarian, 30 minutes max, prefer Italian"
+                  style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', background: '#fff', resize: 'vertical' }} />
+              </label>
             </div>
             {error && <div style={{ color: '#b91c1c', background: '#fee2e2', border: '1px solid #fecaca', padding: '10px 12px', borderRadius: 8 }}>{error}</div>}
 
@@ -121,18 +162,34 @@ export default function Page() {
                 <div style={{ color: '#64748b' }}>No recipes yet. Tap Generate to get 4 ideas.</div>
               )}
               {recipes && recipes.map(r => (
-                <RecipeCard key={r.id} recipe={r} />
+                <RecipeCard key={r.id} recipe={r} onSave={(rec) => setSaved(prev => {
+                  if (prev.find(p => p.id === rec.id)) return prev;
+                  return [rec, ...prev];
+                })} />
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === "Saved" && (
+          <div style={{ padding: 16, display: 'grid', gap: 12 }}>
+            <div style={{ fontSize: 14, color: '#0f172a', marginBottom: 4 }}>Saved recipes</div>
+            {saved.length === 0 && (
+              <div style={{ color: '#64748b' }}>No saved recipes yet.</div>
+            )}
+            {saved.map(r => (
+              <RecipeCard key={`saved-${r.id}`} recipe={r} onSave={() => {}} saved />
+            ))}
           </div>
         )}
       </div>
 
       {/* Bottom tabs */}
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: `calc(${bottomBarHeight}px + var(--safe-area-inset-bottom))`, background: '#ffffff', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 'var(--safe-area-inset-bottom)' }}>
-        <div style={{ display: 'flex', gap: 12, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 18, padding: '8px 10px', boxShadow: '0 1px 0 rgba(0,0,0,0.04)' }}>
+        <div style={{ display: 'flex', gap: 10, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 18, padding: '8px 10px', boxShadow: '0 1px 0 rgba(0,0,0,0.04)' }}>
           <TabButton label="Pantry" active={activeTab === 'Pantry'} onClick={() => setActiveTab('Pantry')} />
           <TabButton label="Recipes" active={activeTab === 'Recipes'} onClick={() => setActiveTab('Recipes')} />
+          <TabButton label="Saved" active={activeTab === 'Saved'} onClick={() => setActiveTab('Saved')} />
         </div>
       </div>
     </div>
@@ -147,7 +204,7 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
   );
 }
 
-function RecipeCard({ recipe }: { recipe: Recipe }) {
+function RecipeCard({ recipe, onSave, saved }: { recipe: Recipe; onSave?: (r: Recipe) => void; saved?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: '#ffffff', overflow: 'hidden' }}>
@@ -162,6 +219,11 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
       {open && (
         <div style={{ padding: 14, borderTop: '1px solid #e2e8f0', whiteSpace: 'pre-wrap', color: '#0f172a' }}>
           {recipe.instructions}
+          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+            {!saved && (
+              <button onClick={() => onSave && onSave(recipe)} style={{ padding: '10px 12px', borderRadius: 10, background: '#0ea5e9', color: '#fff', fontWeight: 700 }}>Save Recipe</button>
+            )}
+          </div>
         </div>
       )}
     </div>

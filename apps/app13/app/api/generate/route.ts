@@ -7,8 +7,18 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const pantry: string[] = Array.isArray(body?.pantry) ? body.pantry : [];
+    const count: number = Number.isFinite(body?.count) && body.count > 0 ? Math.min(10, Math.max(1, Math.floor(body.count))) : 4;
+    const allowMissing: boolean = Boolean(body?.allowMissing);
+    const notes: string = typeof body?.notes === 'string' ? body.notes.trim() : '';
 
-    const prompt = `You are RecipeHelper. Given pantry items: ${pantry.join(", ")}.\nReturn EXACTLY TypeScript code for a constant named recipes, like:\nconst recipes = [\n  { id: "...", name: "...", ingredients: ["..."], preview: "...", instructions: "..." },\n  ... total 4 entries ...\n];\nNo prose, no backticks, only the code for that one const. Ensure each preview is a short line summarizing name + key ingredients. Instructions should be concise multi-line text.`;
+    const staples = "You may assume common staples like salt, pepper, oil, butter, water, and sugar are available.";
+    const missingRule = allowMissing
+      ? "You MAY include up to 2 minor ingredients not in the pantry; if you add any, include them in the ingredients list and suffix them with (add)."
+      : "Do NOT use any ingredients beyond the pantry and staples; choose recipes that can be made with what's listed.";
+
+    const extra = notes ? `Additional preferences or constraints: ${notes}.` : "";
+
+    const prompt = `You are RecipeHelper. Pantry items: ${pantry.join(", ")}. ${staples} ${missingRule} ${extra}\nReturn EXACTLY TypeScript code for a constant named recipes, like:\nconst recipes = [\n  { id: "...", name: "...", ingredients: ["..."], preview: "...", instructions: "..." },\n  ... total ${count} entries ...\n];\nNo prose, no backticks, only the code for that one const. Ensure each preview is a short line summarizing name + key ingredients. Instructions should be concise multi-line text.`;
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
