@@ -143,7 +143,11 @@ export default function Page() {
             <div style={{ display: 'grid', gap: 12, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
               <label style={{ display: 'grid', gap: 6 }}>
                 <span style={{ fontSize: 12, color: '#475569' }}>How many recipes?</span>
-                <input type="number" min={1} max={10} value={count} onChange={e => setCount(Math.max(1, Math.min(10, parseInt(e.target.value || '1', 10))))} style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', background: '#fff', width: 120 }} />
+                <select value={count} onChange={e => setCount(parseInt(e.target.value, 10))} style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', background: '#fff', width: 160 }}>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <option key={i+1} value={i+1}>{i+1}</option>
+                  ))}
+                </select>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <input type="checkbox" checked={allowMissing} onChange={e => setAllowMissing(e.target.checked)} />
@@ -185,8 +189,8 @@ export default function Page() {
       </div>
 
       {/* Bottom tabs */}
-      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: `calc(${bottomBarHeight}px + var(--safe-area-inset-bottom))`, background: '#ffffff', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 'var(--safe-area-inset-bottom)' }}>
-        <div style={{ display: 'flex', gap: 10, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 18, padding: '8px 10px', boxShadow: '0 1px 0 rgba(0,0,0,0.04)' }}>
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: `${bottomBarHeight}px`, background: '#ffffff', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 18, padding: '8px 10px', boxShadow: '0 1px 0 rgba(0,0,0,0.04)', marginBottom: 8 }}>
           <TabButton label="Pantry" active={activeTab === 'Pantry'} onClick={() => setActiveTab('Pantry')} />
           <TabButton label="Recipes" active={activeTab === 'Recipes'} onClick={() => setActiveTab('Recipes')} />
           <TabButton label="Saved" active={activeTab === 'Saved'} onClick={() => setActiveTab('Saved')} />
