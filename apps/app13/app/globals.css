@@ -15,6 +15,6 @@ button { border: none; background: none; }
   :root { --safe-area-inset-bottom: max(env(safe-area-inset-bottom, 0px), 20px); }
 }
 
-.app-root { min-height: 100dvh; min-height: 100vh; min-height: -webkit-fill-available; }
+.app-root { min-height: 100vh; min-height: -webkit-fill-available; min-height: 100dvh; }
 
 
