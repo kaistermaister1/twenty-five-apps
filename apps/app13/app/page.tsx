@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getSupabaseClient } from "../lib/supabaseClient";
 
 type Recipe = {
@@ -359,6 +360,7 @@ export default function Page() {
           backdropFilter: "saturate(120%) blur(8px)",
           borderTop: "1px solid #e5e7eb",
           height: bottomBarHeight,
+          zIndex: 9,
           display: "flex",
           alignItems: "flex-end",
           justifyContent: "center",
@@ -383,8 +385,8 @@ export default function Page() {
       </nav>
 
       {showAuth && (
-        <AuthModal onClose={() => setShowAuth(false)} onSignedIn={() => setShowAuth(false)} supabaseRef={supabaseRef} />)
-      }
+        <AuthModal onClose={() => setShowAuth(false)} onSignedIn={() => setShowAuth(false)} supabaseRef={supabaseRef} />
+      )}
     </div>
   );
 }
@@ -451,6 +453,15 @@ function AuthModal({ onClose, onSignedIn, supabaseRef }: { onClose: () => void; 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Lock body scroll while modal is open (avoid on iOS standalone to prevent keyboard issues)
+  useEffect(() => {
+    const isiOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator as any).platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1;
+    if (isiOS) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   async function handleSubmit() {
     const supa = supabaseRef.current;
     if (!supa) { setError("Supabase not configured"); return; }
@@ -472,8 +483,13 @@ function AuthModal({ onClose, onSignedIn, supabaseRef }: { onClose: () => void; 
     }
   }
 
-  return (
-    <div style={{ position: "fixed", inset: 0 as any, background: "rgba(2,6,23,0.6)", display: "grid", placeItems: "center", zIndex: 50 }}>
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="modal-overlay"
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, height: "100dvh", width: "100vw", background: "rgba(2,6,23,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 99999, overflow: "auto", WebkitOverflowScrolling: "touch" as any }}
+    >
       <div style={{ width: "min(92vw, 420px)", background: "#ffffff", borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 10px 30px rgba(2,6,23,0.2)", padding: 16, display: "grid", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <div style={{ fontWeight: 800, color: "#0f172a" }}>{isSignUp ? "Create account" : "Sign in"}</div>
@@ -482,11 +498,11 @@ function AuthModal({ onClose, onSignedIn, supabaseRef }: { onClose: () => void; 
         {error && <div style={{ color: "#b91c1c", background: "#fee2e2", border: "1px solid #fecaca", padding: "10px 12px", borderRadius: 8 }}>{error}</div>}
         <label style={{ display: "grid", gap: 6 }}>
           <span style={{ fontSize: 12, color: "#475569" }}>Email</span>
-          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff" }} />
+          <input autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" inputMode="email" style={{ padding: "12px 14px", borderRadius: 12, border: "1px solid #cbd5e1", background: "#fff", fontSize: 16, WebkitAppearance: "none" as any, outline: "none", boxShadow: "0 0 0 2px transparent" }} />
         </label>
         <label style={{ display: "grid", gap: 6 }}>
           <span style={{ fontSize: 12, color: "#475569" }}>Password</span>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff" }} />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" style={{ padding: "12px 14px", borderRadius: 12, border: "1px solid #cbd5e1", background: "#fff", fontSize: 16, WebkitAppearance: "none" as any, outline: "none", boxShadow: "0 0 0 2px transparent" }} />
         </label>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={handleSubmit} disabled={loading} style={{ padding: "10px 12px", borderRadius: 10, background: "#0f766e", color: "#fff", fontWeight: 800 }}>
@@ -497,6 +513,7 @@ function AuthModal({ onClose, onSignedIn, supabaseRef }: { onClose: () => void; 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    (typeof document !== 'undefined' ? (document.getElementById('modal-root') || document.body) : ({} as any))
   );
 }

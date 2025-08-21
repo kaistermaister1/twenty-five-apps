@@ -37,9 +37,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           color: "#0f172a",
           WebkitTapHighlightColor: "transparent",
           WebkitTouchCallout: "none",
-          overflow: "hidden",
+          overflow: "auto",
         }}
       >
+        <div id="modal-root" />
         {children}
       </body>
     </html>
