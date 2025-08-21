@@ -257,14 +257,12 @@ export default function Page() {
         // If reviewing an item loaded from the source group, move that exact item
         await mondayFetch({
           token: apiToken,
-          query: `mutation ($itemId: ID!, $groupId: String!, $name: String!) {
+          query: `mutation ($itemId: ID!, $groupId: String!) {
             move_item_to_group (item_id: $itemId, group_id: $groupId) { id }
-            change_item_name (item_id: $itemId, new_name: $name) { id }
           }`,
           variables: {
             itemId: currentItemId,
-            groupId: targetGroup,
-            name: `${decision === "passed" ? "✅" : "❌"} ${loomId}`
+            groupId: targetGroup
           }
         });
         setMessage(decision === "passed" ? "Moved to Passed" : "Moved to Failed");
@@ -286,14 +284,12 @@ export default function Page() {
         if (match?.id) {
           await mondayFetch({
             token: apiToken,
-            query: `mutation ($itemId: ID!, $groupId: String!, $name: String!) {
+            query: `mutation ($itemId: ID!, $groupId: String!) {
               move_item_to_group (item_id: $itemId, group_id: $groupId) { id }
-              change_item_name (item_id: $itemId, new_name: $name) { id }
             }`,
             variables: {
               itemId: match.id,
-              groupId: targetGroup,
-              name: `${decision === "passed" ? "✅" : "❌"} ${loomId}`
+              groupId: targetGroup
             }
           });
           setMessage(decision === "passed" ? "Updated and moved to Passed" : "Updated and moved to Failed");
