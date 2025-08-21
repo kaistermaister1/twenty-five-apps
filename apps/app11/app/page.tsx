@@ -201,19 +201,21 @@ export default function Page() {
         if (!url && cv.text && /^https?:\/\//.test(cv.text)) url = cv.text;
         if (url) queue.push({ itemId: it.id, url, name: it.name || "" });
       }
-      if (!queue.length) {
+      const loomQueue = queue.filter(q => !!parseLoomEmbedUrl(q.url));
+      if (!loomQueue.length) {
         setReviewQueue([]);
         setQueueIndex(0);
         setCurrentItemId(null);
         setCurrentUrl(null);
-        setMessage("No links found in the selected group/column.");
+        setMessage("No Loom links found in the selected group/column.");
         return;
       }
-      setReviewQueue(queue);
+      const skipped = queue.length - loomQueue.length;
+      setReviewQueue(loomQueue);
       setQueueIndex(0);
-      setCurrentItemId(queue[0].itemId);
-      setCurrentUrl(queue[0].url);
-      setMessage(`Loaded ${queue.length} item${queue.length === 1 ? "" : "s"} from Source group.`);
+      setCurrentItemId(loomQueue[0].itemId);
+      setCurrentUrl(loomQueue[0].url);
+      setMessage(`Loaded ${loomQueue.length} Loom link${loomQueue.length === 1 ? "" : "s"}${skipped > 0 ? ` • Skipped ${skipped} non-Loom link${skipped === 1 ? "" : "s"}` : ""}.`);
     } catch (e: any) {
       setMessage(e?.message || "Failed to load items from group");
     }
