@@ -60,7 +60,7 @@ html, body {
 }
 
 /* iOS safe area helpers */
-.safe-top { height: env(safe-area-inset-top); }
-.safe-bottom { height: env(safe-area-inset-bottom); }
+.safe-top { height: env(safe-area-inset-top); background: hsl(var(--background)); }
+.safe-bottom { height: env(safe-area-inset-bottom); background: hsl(var(--background)); }
 
 

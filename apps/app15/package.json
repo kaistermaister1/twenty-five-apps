@@ -1,0 +1,31 @@
+{
+  "name": "app15-morning-night",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev -p 3015 -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -p 3015",
+    "lint": "echo 'no linter configured'"
+  },
+  "dependencies": {
+    "elevenlabs": "^1.50.0",
+    "openai": "^4.57.0",
+    "framer-motion": "^11.3.0",
+    "lucide-react": "^0.460.0",
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.7",
+    "typescript": "^5.4.5"
+  }
+}
+
+
