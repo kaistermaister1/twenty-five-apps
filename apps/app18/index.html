@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App 18 · Memory Grid</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <link rel="apple-touch-icon" href="icons/icon192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main>
+    <header class="header">
+      <h1>Memory Grid</h1>
+      <div class="stats">
+        <div class="stat"><span class="label">Level</span><span id="level">1</span></div>
+        <div class="stat"><span class="label">Score</span><span id="score">0</span></div>
+        <div class="stat"><span class="label">Lives</span><span id="lives">3</span></div>
+      </div>
+    </header>
+
+    <section class="controls">
+      <button id="startBtn" class="primary">Start</button>
+      <button id="resetBtn" class="ghost" aria-label="Reset" title="Reset">Reset</button>
+      <div id="message" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="board-wrapper">
+      <div id="board" class="board" role="grid" aria-label="8 by 8 memory grid"></div>
+    </section>
+
+    <footer class="footer">
+      <p>Tap Start, watch the highlights, then select the same squares.</p>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js');
+    }
+  </script>
+</body>
+</html>
+
+
